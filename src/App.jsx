@@ -3,7 +3,7 @@ import AvatarPanel from './components/AvatarPanel'
 import ChatPanel from './components/ChatPanel'
 import styles from './App.module.css'
 
-const AVATAR_ID     = 'Wayne_20240711'
+const AVATAR_ID     = 'e2eb35c947644f09820aa3a4f9c15488'
 const MIDDLETON_URL = 'https://middleton.p-e.kr/finbot'
 const LIVEAVATAR_API = 'https://api.liveavatar.com/v1'
 
