@@ -3,9 +3,17 @@ import AvatarPanel from './components/AvatarPanel'
 import ChatPanel from './components/ChatPanel'
 import styles from './App.module.css'
 
-const AVATAR_ID     = '5dd4d830-957a-419f-9334-0dc4399ada5d'  // Rika Sitting (공개 아바타, v5와 동일)
-const MIDDLETON_URL = 'https://middleton.p-e.kr/finbot'
-const LIVEAVATAR_API = 'https://api.liveavatar.com/v1'
+const AVATAR_ID = 'e2eb35c947644f09820aa3a4f9c15488'
+const VOICE_ID  = '15d128072e194dc399d2898967941897'
+
+async function callProxy(endpoint, payload) {
+  const res = await fetch('/api/heygen-proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ endpoint, payload })
+  })
+  return res.json()
+}
 
 export default function App() {
   const [status, setStatus]         = useState('idle')   // idle | connecting | connected | speaking
@@ -17,26 +25,23 @@ export default function App() {
   const [videoReady, setVideoReady]     = useState(false)
 
   const roomRef        = useRef(null)
-  const sessionRef     = useRef(null)  // { session_id, session_token }
+  const sessionRef     = useRef(null)
   const videoRef       = useRef(null)
   const historyRef     = useRef([])
 
   const startAvatar = useCallback(async () => {
     setStatus('connecting')
     try {
-      // Middleton이 LIVEAVATAR_API_KEY로 세션 생성 + 시작까지 처리
-      const res = await fetch(`${MIDDLETON_URL}/api/liveavatar-token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ avatar_id: AVATAR_ID })
-      })
-      const data = await res.json()
-      if (!data.livekit_url) throw new Error('LiveAvatar 세션 생성 실패: ' + JSON.stringify(data))
+      const tokenRes = await fetch('/api/heygen-token', { method: 'POST' }).then(r => r.json())
+      if (!tokenRes.token) throw new Error('HeyGen 토큰 발급 실패: ' + JSON.stringify(tokenRes))
 
-      sessionRef.current = {
-        session_id:    data.session_id,
-        session_token: data.session_token,
-      }
+      const newRes = await callProxy('streaming.new', {
+        quality: 'medium',
+        avatar_name: AVATAR_ID,
+        voice: { voice_id: VOICE_ID, rate: 1.0, emotion: 'friendly' }
+      })
+      if (!newRes.data?.url) throw new Error('스트리밍 세션 생성 실패: ' + JSON.stringify(newRes))
+      sessionRef.current = newRes.data
 
       const room = new window.LivekitClient.Room()
       roomRef.current = room
@@ -56,7 +61,12 @@ export default function App() {
         }
       })
 
-      await room.connect(data.livekit_url, data.livekit_client_token)
+      await room.connect(sessionRef.current.url, sessionRef.current.access_token)
+      await callProxy('streaming.start', {
+        session_id: sessionRef.current.session_id,
+        sdp: sessionRef.current.sdp
+      })
+
       setStatus('connected')
     } catch (e) {
       console.error(e)
@@ -65,16 +75,11 @@ export default function App() {
   }, [])
 
   const speakText = useCallback(async (text) => {
-    const session = sessionRef.current
-    if (!session) return
-    // session_token으로 직접 호출 (API Key 불필요)
-    await fetch(`${LIVEAVATAR_API}/sessions/${session.session_id}/task`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.session_token}`,
-      },
-      body: JSON.stringify({ text, task_type: 'repeat' })
+    if (!sessionRef.current) return
+    await callProxy('streaming.task', {
+      session_id: sessionRef.current.session_id,
+      text,
+      task_type: 'repeat'
     })
   }, [])
 
