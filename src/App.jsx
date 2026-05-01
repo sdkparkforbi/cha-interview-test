@@ -260,11 +260,18 @@ export default function App() {
       await callProxy('streaming.start', { session_id: sessionRef.current.session_id })
 
       setStatus('connected')
+
+      // 마이크 자동 활성화 (사용자 클릭(시작 버튼) 컨텍스트 안이라 권한 prompt 가능)
+      if (initRecognition()) {
+        autoListenRef.current = true
+        setAutoListen(true)
+        setTimeout(() => startListening(), 300)
+      }
     } catch (e) {
       console.error(e)
       setStatus('idle')
     }
-  }, [])
+  }, [initRecognition, startListening])
 
   return (
     <div className={styles.app}>
