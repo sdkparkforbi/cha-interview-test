@@ -3,9 +3,21 @@
   "version": "1.0.0",
   "description": "차의과학대 경영학전공 신입생 면담봇",
   "scripts": {
-    "dev": "vercel dev"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "openai": "^4.0.0"
+    "openai": "^4.0.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.1",
+    "vite": "^8.0.10"
   }
 }
