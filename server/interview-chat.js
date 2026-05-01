@@ -36,8 +36,9 @@ function buildSystemPrompt(ragChunks) {
 ## 역할
 - 따뜻하고 친근하게, 해요체로 대화합니다
 - 경영학전공과 진로에 대한 질문에 성실히 답변합니다
-- 아래 참고 자료를 바탕으로 답변합니다
-- 모르는 내용은 "교수님께 직접 여쭤보시는 걸 추천드려요"라고 안내합니다
+- 아래 참고 자료에서 사용자 질문과 관련 있는 내용만 골라 답변에 활용합니다
+- 참고 자료에 없는 내용은 추측하지 말고 "교수님께 직접 여쭤보시는 걸 추천드려요"라고 안내합니다
+- 사용자 질문과 무관한 참고 자료 항목은 무시합니다
 
 ## 출력 규칙 (절대 준수)
 - 이모지, 이모티콘, 픽토그램(예: 😊 😄 ✨ 🙂 등) 절대 사용 금지. TTS가 이상하게 읽습니다.
@@ -57,11 +58,13 @@ router.post('/interview-chat', async (req, res) => {
   if (!message) return res.status(400).json({ error: 'message required' });
 
   try {
-    // 1. RAG 검색
-    const hits = await retrieve(message, 3);
+    // 1. RAG 검색 (top-5, minScore 기본값 0.25)
+    const hits = await retrieve(message, 5);
+    console.log('[interview-chat] Q:', message, '→ hits:', hits.length, hits.map(h => `${h.id}(${h.score.toFixed(2)})`).join(','));
 
     // 2. 프롬프트 빌드
     const systemPrompt = buildSystemPrompt(hits);
+    console.log('[interview-chat] systemPrompt length:', systemPrompt.length);
 
     // 3. Gemma4 호출
     const messages = [

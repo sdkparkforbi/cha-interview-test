@@ -23,7 +23,7 @@ function Message({ msg }) {
   )
 }
 
-export default function ChatPanel({ messages, isProcessing, onSend }) {
+export default function ChatPanel({ messages, isProcessing, onSend, isListening, onToggleMic, micEnabled }) {
   const [input, setInput]       = useState('')
   const bottomRef               = useRef(null)
   const textareaRef             = useRef(null)
@@ -76,13 +76,23 @@ export default function ChatPanel({ messages, isProcessing, onSend }) {
 
       {/* 입력창 */}
       <div className={styles.inputArea}>
+        <button
+          type="button"
+          className={styles.sendBtn}
+          onClick={onToggleMic}
+          disabled={!micEnabled}
+          title={isListening ? '마이크 끄기' : '마이크 켜기'}
+          style={isListening ? { background: '#dc2626', color: '#fff' } : undefined}
+        >
+          {isListening ? '■' : '🎤'}
+        </button>
         <textarea
           ref={textareaRef}
           className={styles.textarea}
           value={input}
           onChange={handleInput}
           onKeyDown={handleKey}
-          placeholder="궁금한 점을 입력하세요…"
+          placeholder={isListening ? '듣고 있어요…' : '궁금한 점을 입력하세요…'}
           rows={1}
           disabled={isProcessing}
         />
@@ -97,7 +107,7 @@ export default function ChatPanel({ messages, isProcessing, onSend }) {
 
       {/* 하단 힌트 */}
       <div className={styles.hint}>
-        Enter로 전송 · Shift+Enter 줄바꿈
+        Enter로 전송 · Shift+Enter 줄바꿈 · 🎤 누르면 음성 대화
       </div>
     </div>
   )
