@@ -69,18 +69,29 @@ export default async function handler(req, res) {
     let parsed;
 
     if (useGemma) {
-      // Gemma4 via Middleton Express
-      const MIDDLETON_URL = process.env.MIDDLETON_API_URL;
-      const MIDDLETON_KEY = process.env.MIDDLETON_API_KEY;
-      if (!MIDDLETON_URL || !MIDDLETON_KEY) {
-        return res.status(500).json({ error: 'Middleton not configured' });
-      }
-      const response = await fetch(`${MIDDLETON_URL}/chat`, {
+      // Gemma4 via Middleton /v1/ (OpenAI-compat, 이미 외부 노출)
+      const messages = [
+        { role: 'system', content: buildSystemPrompt() },
+        ...history.slice(-8),
+        { role: 'user', content: message }
+      ];
+      const response = await fetch('https://middleton.p-e.kr/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': MIDDLETON_KEY },
-        body: JSON.stringify({ message, history, systemPrompt: buildSystemPrompt() })
+        headers: {
+          'Authorization': 'Bearer router-key',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gemma4:latest',
+          messages,
+          max_tokens: 400,
+          temperature: 0.7
+        })
       });
-      parsed = await response.json();
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '{}';
+      try { parsed = JSON.parse(content); }
+      catch { parsed = { reply: content, ttsReply: content }; }
     } else {
       // GPT-4o-mini (기본)
       const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
