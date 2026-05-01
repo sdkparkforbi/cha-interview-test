@@ -3,7 +3,7 @@ import AvatarPanel from './components/AvatarPanel'
 import ChatPanel from './components/ChatPanel'
 import styles from './App.module.css'
 
-const AVATAR_ID     = 'e2eb35c947644f09820aa3a4f9c15488'
+const AVATAR_ID     = '5dd4d830-957a-419f-9334-0dc4399ada5d'  // Rika Sitting (공개 아바타, v5와 동일)
 const MIDDLETON_URL = 'https://middleton.p-e.kr/finbot'
 const LIVEAVATAR_API = 'https://api.liveavatar.com/v1'
 
