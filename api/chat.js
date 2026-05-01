@@ -1,5 +1,4 @@
-// 면담봇 LLM 핸들러
-// model 파라미터: 'gpt' (기본) | 'gemma' (관리자)
+// 면담봇 LLM 핸들러 — Gemma4 via Middleton
 
 const TRANSCRIPT = `
 [박대근 교수 경영학전공 소개 인터뷰 전사]
@@ -57,71 +56,37 @@ export default async function handler(req, res) {
   }
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { message, history = [], model = 'gpt', adminPassword } = req.body || {};
+  const { message, history = [] } = req.body || {};
   if (!message) return res.status(400).json({ error: 'message required' });
-
-  // Gemma 모드는 관리자 비밀번호 필요
-  const useGemma = model === 'gemma' && adminPassword === process.env.ADMIN_PASSWORD;
 
   res.setHeader('Access-Control-Allow-Origin', '*');
 
   try {
+    const messages = [
+      { role: 'system', content: buildSystemPrompt() },
+      ...history.slice(-8),
+      { role: 'user', content: message }
+    ];
+
+    const response = await fetch('https://middleton.p-e.kr/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer router-key',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gemma4:latest',
+        messages,
+        max_tokens: 400,
+        temperature: 0.7
+      })
+    });
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '{}';
     let parsed;
-
-    if (useGemma) {
-      // Gemma4 via Middleton /v1/ (OpenAI-compat, 이미 외부 노출)
-      const messages = [
-        { role: 'system', content: buildSystemPrompt() },
-        ...history.slice(-8),
-        { role: 'user', content: message }
-      ];
-      const response = await fetch('https://middleton.p-e.kr/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer router-key',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'gemma4:latest',
-          messages,
-          max_tokens: 400,
-          temperature: 0.7
-        })
-      });
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || '{}';
-      try { parsed = JSON.parse(content); }
-      catch { parsed = { reply: content, ttsReply: content }; }
-    } else {
-      // GPT-4o-mini (기본)
-      const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-      if (!OPENAI_API_KEY) return res.status(500).json({ error: 'OPENAI_API_KEY not configured' });
-
-      const messages = [
-        { role: 'system', content: buildSystemPrompt() },
-        ...history.slice(-8),
-        { role: 'user', content: message }
-      ];
-
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages,
-          max_tokens: 300,
-          temperature: 0.7,
-          response_format: { type: 'json_object' }
-        })
-      });
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || '{}';
-      try { parsed = JSON.parse(content); }
-      catch { parsed = { reply: content, ttsReply: content }; }
-    }
+    try { parsed = JSON.parse(content); }
+    catch { parsed = { reply: content, ttsReply: content }; }
 
     if (!parsed.ttsReply) parsed.ttsReply = parsed.reply;
     return res.status(200).json(parsed);

@@ -143,15 +143,6 @@
       <textarea id="user-input" placeholder="궁금한 점을 입력하세요..." rows="1"></textarea>
       <button id="send-btn">전송</button>
     </div>
-    <!-- 관리자 패널: URL에 ?admin=1 있을 때만 노출 -->
-    <div class="admin-panel" id="admin-panel">
-      <label>모델:</label>
-      <select id="model-select">
-        <option value="gpt">GPT-4o-mini</option>
-        <option value="gemma">Gemma4 (Middleton)</option>
-      </select>
-      <input type="password" id="admin-pw" placeholder="관리자 비밀번호" />
-    </div>
   </div>
 </div>
 
@@ -164,14 +155,6 @@ const VOICE_ID  = 'ko-KR-InJoonNeural'; // 한국어 남성 음성
 let room = null, sessionInfo = null;
 let isSpeaking = false, isProcessing = false;
 const history = [];
-
-// ── 관리자 모드 ────────────────────────────────────────
-const params = new URLSearchParams(location.search);
-if (params.get('admin') === '1') {
-  document.getElementById('admin-panel').classList.add('visible');
-}
-function getModel() { return document.getElementById('model-select')?.value || 'gpt'; }
-function getAdminPw() { return document.getElementById('admin-pw')?.value || ''; }
 
 // ── 유틸 ──────────────────────────────────────────────
 function setStatus(text, cls = '') {
@@ -298,9 +281,7 @@ async function sendMessage(userText) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message: userText,
-        history: history.slice(-8),
-        model: getModel(),
-        adminPassword: getAdminPw()
+        history: history.slice(-8)
       })
     });
     const data = await res.json();
