@@ -32,13 +32,15 @@ export default function App() {
   const startAvatar = useCallback(async () => {
     setStatus('connecting')
     try {
-      const { token } = await fetch('/api/heygen-token', { method: 'POST' }).then(r => r.json())
+      const tokenRes = await fetch('/api/heygen-token', { method: 'POST' }).then(r => r.json())
+      if (!tokenRes.token) throw new Error('HeyGen 토큰 발급 실패: ' + JSON.stringify(tokenRes))
 
       const newRes = await callProxy('streaming.new', {
         quality: 'medium',
         avatar_name: AVATAR_ID,
         voice: { voice_id: VOICE_ID }
       })
+      if (!newRes.data?.url) throw new Error('스트리밍 세션 생성 실패: ' + JSON.stringify(newRes))
       sessionRef.current = newRes.data
 
       const room = new window.LivekitClient.Room()
