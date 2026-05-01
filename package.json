@@ -1,0 +1,11 @@
+{
+  "name": "cha-interview-bot",
+  "version": "1.0.0",
+  "description": "차의과학대 경영학전공 신입생 면담봇",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "openai": "^4.0.0"
+  }
+}

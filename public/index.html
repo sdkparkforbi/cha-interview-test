@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>박대근 교수 면담봇 | 차의과학대 경영학전공</title>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans KR', sans-serif; background: #1a1a2e; color: #eee; height: 100vh; display: flex; flex-direction: column; }
+
+  header {
+    padding: 14px 24px;
+    background: #16213e;
+    border-bottom: 1px solid #0f3460;
+    display: flex; align-items: center; gap: 12px;
+  }
+  header h1 { font-size: 16px; font-weight: 600; color: #c9a27e; }
+  header span { font-size: 13px; color: #888; }
+
+  .main {
+    flex: 1; display: flex; overflow: hidden;
+  }
+
+  /* 아바타 영역 */
+  .avatar-panel {
+    width: 55%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: #0f1729; position: relative; padding: 24px;
+  }
+  #avatar-video {
+    width: 100%; max-width: 480px; border-radius: 16px;
+    background: #000; aspect-ratio: 9/16; object-fit: cover;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .avatar-placeholder {
+    width: 100%; max-width: 480px; aspect-ratio: 9/16;
+    background: #16213e; border-radius: 16px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    border: 1px dashed #0f3460;
+  }
+  .avatar-placeholder .icon { font-size: 64px; }
+  .avatar-placeholder p { color: #666; font-size: 14px; }
+  #start-btn {
+    margin-top: 20px; padding: 12px 32px;
+    background: #c9a27e; color: #1a1a2e; border: none; border-radius: 8px;
+    font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.2s;
+  }
+  #start-btn:hover { background: #a07850; }
+  #start-btn:disabled { background: #555; cursor: default; }
+
+  .status-badge {
+    position: absolute; top: 16px; left: 16px;
+    padding: 4px 10px; border-radius: 20px; font-size: 12px;
+    background: #333;
+  }
+  .status-badge.connected { background: #1a4731; color: #4ade80; }
+  .status-badge.speaking { background: #1e3a5f; color: #60a5fa; }
+
+  /* 채팅 패널 */
+  .chat-panel {
+    width: 45%; display: flex; flex-direction: column;
+    background: #16213e; border-left: 1px solid #0f3460;
+  }
+  .chat-header {
+    padding: 16px 20px; border-bottom: 1px solid #0f3460;
+    font-size: 14px; color: #c9a27e; font-weight: 600;
+  }
+  .chat-messages {
+    flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .msg { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.6; }
+  .msg.user { align-self: flex-end; background: #0f3460; color: #eee; border-bottom-right-radius: 4px; }
+  .msg.assistant { align-self: flex-start; background: #1e2d4a; color: #eee; border-bottom-left-radius: 4px; }
+  .msg .label { font-size: 11px; color: #888; margin-bottom: 4px; }
+
+  .chat-input-area {
+    padding: 16px; border-top: 1px solid #0f3460; display: flex; gap: 10px; align-items: flex-end;
+  }
+  #user-input {
+    flex: 1; padding: 10px 14px; border-radius: 8px;
+    background: #0f1729; border: 1px solid #0f3460; color: #eee;
+    font-size: 14px; resize: none; min-height: 42px; max-height: 120px;
+    font-family: inherit;
+  }
+  #user-input:focus { outline: none; border-color: #c9a27e; }
+  #send-btn {
+    padding: 10px 18px; background: #c9a27e; color: #1a1a2e;
+    border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+    cursor: pointer; white-space: nowrap; transition: 0.2s;
+  }
+  #send-btn:hover { background: #a07850; }
+  #send-btn:disabled { background: #444; cursor: default; color: #888; }
+
+  /* 관리자 패널 (숨김) */
+  .admin-panel {
+    display: none; padding: 12px 20px; background: #0a0f1e;
+    border-top: 1px solid #333; font-size: 13px;
+  }
+  .admin-panel.visible { display: flex; align-items: center; gap: 12px; }
+  .admin-panel label { color: #888; }
+  .admin-panel select, .admin-panel input {
+    padding: 4px 8px; background: #16213e; border: 1px solid #333;
+    color: #eee; border-radius: 4px; font-size: 13px;
+  }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+  .typing { color: #888; font-style: italic; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>박대근 교수 면담봇</h1>
+    <span>차의과학대학교 경영학전공 전공상담 · 진로상담</span>
+  </div>
+</header>
+
+<div class="main">
+  <!-- 아바타 영역 -->
+  <div class="avatar-panel">
+    <span class="status-badge" id="status-badge">대기 중</span>
+    <div class="avatar-placeholder" id="avatar-placeholder">
+      <div class="icon">👨‍🏫</div>
+      <p>아바타를 시작하려면 버튼을 누르세요</p>
+    </div>
+    <video id="avatar-video" autoplay playsinline style="display:none;"></video>
+    <button id="start-btn">아바타 시작</button>
+  </div>
+
+  <!-- 채팅 패널 -->
+  <div class="chat-panel">
+    <div class="chat-header">💬 대화 기록</div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="msg assistant">
+        <div class="label">박대근 교수</div>
+        안녕하세요! 경영학전공 면담봇입니다. 전공 선택이나 진로에 대해 궁금한 점을 편하게 물어보세요 😊
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <textarea id="user-input" placeholder="궁금한 점을 입력하세요..." rows="1"></textarea>
+      <button id="send-btn">전송</button>
+    </div>
+    <!-- 관리자 패널: URL에 ?admin=1 있을 때만 노출 -->
+    <div class="admin-panel" id="admin-panel">
+      <label>모델:</label>
+      <select id="model-select">
+        <option value="gpt">GPT-4o-mini</option>
+        <option value="gemma">Gemma4 (Middleton)</option>
+      </select>
+      <input type="password" id="admin-pw" placeholder="관리자 비밀번호" />
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 설정 ──────────────────────────────────────────────
+const AVATAR_ID = 'Wayne_20240711';   // 교수님 아바타 ID로 교체 필요
+const VOICE_ID  = 'ko-KR-InJoonNeural'; // 한국어 남성 음성
+
+// ── 상태 ──────────────────────────────────────────────
+let room = null, sessionInfo = null;
+let isSpeaking = false, isProcessing = false;
+const history = [];
+
+// ── 관리자 모드 ────────────────────────────────────────
+const params = new URLSearchParams(location.search);
+if (params.get('admin') === '1') {
+  document.getElementById('admin-panel').classList.add('visible');
+}
+function getModel() { return document.getElementById('model-select')?.value || 'gpt'; }
+function getAdminPw() { return document.getElementById('admin-pw')?.value || ''; }
+
+// ── 유틸 ──────────────────────────────────────────────
+function setStatus(text, cls = '') {
+  const el = document.getElementById('status-badge');
+  el.textContent = text;
+  el.className = 'status-badge ' + cls;
+}
+
+function addMessage(role, text) {
+  const wrap = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.innerHTML = `<div class="label">${role === 'user' ? '나' : '박대근 교수'}</div>${text}`;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function setTyping(on) {
+  const wrap = document.getElementById('chat-messages');
+  let el = document.getElementById('typing-indicator');
+  if (on && !el) {
+    el = document.createElement('div');
+    el.id = 'typing-indicator';
+    el.className = 'msg assistant typing';
+    el.textContent = '답변 생성 중...';
+    wrap.appendChild(el);
+    wrap.scrollTop = wrap.scrollHeight;
+  } else if (!on && el) {
+    el.remove();
+  }
+}
+
+// ── HeyGen 아바타 ──────────────────────────────────────
+async function callProxy(endpoint, payload) {
+  const res = await fetch('/api/heygen-proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ endpoint, payload })
+  });
+  return res.json();
+}
+
+async function startAvatar() {
+  const btn = document.getElementById('start-btn');
+  btn.disabled = true;
+  btn.textContent = '연결 중...';
+  setStatus('연결 중...');
+
+  try {
+    // 1. 토큰 발급
+    const tokenRes = await fetch('/api/heygen-token', { method: 'POST' });
+    const { token } = await tokenRes.json();
+
+    // 2. 스트리밍 세션 생성
+    const newRes = await callProxy('streaming.new', {
+      quality: 'medium',
+      avatar_name: AVATAR_ID,
+      voice: { voice_id: VOICE_ID }
+    });
+    sessionInfo = newRes.data;
+
+    // 3. LiveKit 연결
+    room = new LivekitClient.Room();
+
+    room.on(LivekitClient.RoomEvent.DataReceived, (payload) => {
+      try {
+        const msg = JSON.parse(new TextDecoder().decode(payload));
+        if (msg.type === 'avatar_start_talking') { isSpeaking = true; setStatus('말하는 중', 'speaking'); }
+        if (msg.type === 'avatar_stop_talking')  { isSpeaking = false; setStatus('연결됨', 'connected'); }
+      } catch {}
+    });
+
+    room.on(LivekitClient.RoomEvent.TrackSubscribed, (track) => {
+      if (track.kind === 'video') {
+        const video = document.getElementById('avatar-video');
+        track.attach(video);
+        video.style.display = 'block';
+        document.getElementById('avatar-placeholder').style.display = 'none';
+      }
+    });
+
+    await room.connect(sessionInfo.url, sessionInfo.access_token);
+
+    // 4. 스트리밍 시작
+    await callProxy('streaming.start', { session_id: sessionInfo.session_id, sdp: sessionInfo.sdp });
+
+    setStatus('연결됨', 'connected');
+    btn.textContent = '연결됨';
+    document.getElementById('user-input').focus();
+
+  } catch (e) {
+    console.error(e);
+    setStatus('연결 실패');
+    btn.disabled = false;
+    btn.textContent = '다시 시작';
+  }
+}
+
+async function speakText(text) {
+  if (!sessionInfo) return;
+  if (isSpeaking || isProcessing) {
+    await callProxy('streaming.interrupt', { session_id: sessionInfo.session_id });
+  }
+  await callProxy('streaming.task', {
+    session_id: sessionInfo.session_id,
+    text: text,
+    task_type: 'repeat'
+  });
+}
+
+// ── LLM 채팅 ──────────────────────────────────────────
+async function sendMessage(userText) {
+  if (!userText.trim() || isProcessing) return;
+  isProcessing = true;
+
+  document.getElementById('send-btn').disabled = true;
+  addMessage('user', userText);
+  history.push({ role: 'user', content: userText });
+  setTyping(true);
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: userText,
+        history: history.slice(-8),
+        model: getModel(),
+        adminPassword: getAdminPw()
+      })
+    });
+    const data = await res.json();
+    const reply = data.reply || '죄송해요, 답변을 생성하지 못했어요.';
+    const ttsReply = data.ttsReply || reply;
+
+    setTyping(false);
+    addMessage('assistant', reply);
+    history.push({ role: 'assistant', content: reply });
+
+    // 아바타 발화
+    await speakText(ttsReply);
+
+  } catch (e) {
+    setTyping(false);
+    addMessage('assistant', '오류가 발생했어요. 다시 시도해 주세요.');
+    console.error(e);
+  } finally {
+    isProcessing = false;
+    document.getElementById('send-btn').disabled = false;
+  }
+}
+
+// ── 이벤트 ────────────────────────────────────────────
+document.getElementById('start-btn').addEventListener('click', startAvatar);
+
+document.getElementById('send-btn').addEventListener('click', () => {
+  const input = document.getElementById('user-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  input.style.height = 'auto';
+  sendMessage(text);
+});
+
+document.getElementById('user-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    document.getElementById('send-btn').click();
+  }
+});
+
+// textarea 자동 높이
+document.getElementById('user-input').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+</script>
+</body>
+</html>
