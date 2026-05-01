@@ -36,14 +36,17 @@ export default function App() {
       if (!tokenRes.token) throw new Error('HeyGen 토큰 발급 실패: ' + JSON.stringify(tokenRes))
 
       const newRes = await callProxy('streaming.new', {
+        avatar_id: AVATAR_ID,
         quality: 'medium',
-        avatar_name: AVATAR_ID,
-        voice: { voice_id: VOICE_ID, rate: 1.0, emotion: 'friendly' }
+        voice: { voice_id: VOICE_ID, rate: 1.0, emotion: 'friendly' },
+        language: 'ko',
+        version: 'v2',
+        video_encoding: 'H264'
       })
       if (!newRes.data?.url) throw new Error('스트리밍 세션 생성 실패: ' + JSON.stringify(newRes))
       sessionRef.current = newRes.data
 
-      const room = new window.LivekitClient.Room()
+      const room = new window.LivekitClient.Room({ adaptiveStream: true, dynacast: true })
       roomRef.current = room
 
       room.on(window.LivekitClient.RoomEvent.DataReceived, (payload) => {
@@ -55,16 +58,15 @@ export default function App() {
       })
 
       room.on(window.LivekitClient.RoomEvent.TrackSubscribed, (track) => {
-        if (track.kind === 'video' && videoRef.current) {
+        if ((track.kind === 'video' || track.kind === 'audio') && videoRef.current) {
           track.attach(videoRef.current)
-          setVideoReady(true)
+          if (track.kind === 'video') setVideoReady(true)
         }
       })
 
       await room.connect(sessionRef.current.url, sessionRef.current.access_token)
       await callProxy('streaming.start', {
-        session_id: sessionRef.current.session_id,
-        sdp: sessionRef.current.sdp
+        session_id: sessionRef.current.session_id
       })
 
       setStatus('connected')
