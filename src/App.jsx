@@ -3,17 +3,9 @@ import AvatarPanel from './components/AvatarPanel'
 import ChatPanel from './components/ChatPanel'
 import styles from './App.module.css'
 
-const AVATAR_ID = 'Wayne_20240711'
-const VOICE_ID  = 'ko-KR-InJoonNeural'
-
-async function callProxy(endpoint, payload) {
-  const res = await fetch('/api/heygen-proxy', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ endpoint, payload })
-  })
-  return res.json()
-}
+const AVATAR_ID     = 'Wayne_20240711'
+const MIDDLETON_URL = 'https://middleton.p-e.kr/finbot'
+const LIVEAVATAR_API = 'https://api.liveavatar.com/v1'
 
 export default function App() {
   const [status, setStatus]         = useState('idle')   // idle | connecting | connected | speaking
@@ -25,23 +17,26 @@ export default function App() {
   const [videoReady, setVideoReady]     = useState(false)
 
   const roomRef        = useRef(null)
-  const sessionRef     = useRef(null)
+  const sessionRef     = useRef(null)  // { session_id, session_token }
   const videoRef       = useRef(null)
   const historyRef     = useRef([])
 
   const startAvatar = useCallback(async () => {
     setStatus('connecting')
     try {
-      const tokenRes = await fetch('/api/heygen-token', { method: 'POST' }).then(r => r.json())
-      if (!tokenRes.token) throw new Error('HeyGen 토큰 발급 실패: ' + JSON.stringify(tokenRes))
-
-      const newRes = await callProxy('streaming.new', {
-        quality: 'medium',
-        avatar_name: AVATAR_ID,
-        voice: { voice_id: VOICE_ID }
+      // Middleton이 LIVEAVATAR_API_KEY로 세션 생성 + 시작까지 처리
+      const res = await fetch(`${MIDDLETON_URL}/api/liveavatar-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar_id: AVATAR_ID })
       })
-      if (!newRes.data?.url) throw new Error('스트리밍 세션 생성 실패: ' + JSON.stringify(newRes))
-      sessionRef.current = newRes.data
+      const data = await res.json()
+      if (!data.livekit_url) throw new Error('LiveAvatar 세션 생성 실패: ' + JSON.stringify(data))
+
+      sessionRef.current = {
+        session_id:    data.session_id,
+        session_token: data.session_token,
+      }
 
       const room = new window.LivekitClient.Room()
       roomRef.current = room
@@ -61,12 +56,7 @@ export default function App() {
         }
       })
 
-      await room.connect(sessionRef.current.url, sessionRef.current.access_token)
-      await callProxy('streaming.start', {
-        session_id: sessionRef.current.session_id,
-        sdp: sessionRef.current.sdp
-      })
-
+      await room.connect(data.livekit_url, data.livekit_client_token)
       setStatus('connected')
     } catch (e) {
       console.error(e)
@@ -75,11 +65,16 @@ export default function App() {
   }, [])
 
   const speakText = useCallback(async (text) => {
-    if (!sessionRef.current) return
-    await callProxy('streaming.task', {
-      session_id: sessionRef.current.session_id,
-      text,
-      task_type: 'repeat'
+    const session = sessionRef.current
+    if (!session) return
+    // session_token으로 직접 호출 (API Key 불필요)
+    await fetch(`${LIVEAVATAR_API}/sessions/${session.session_id}/task`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.session_token}`,
+      },
+      body: JSON.stringify({ text, task_type: 'repeat' })
     })
   }, [])
 
