@@ -19,7 +19,7 @@ export default function App() {
   const [status, setStatus]         = useState('idle')   // idle | connecting | connected | speaking
   const [messages, setMessages]     = useState([{
     role: 'assistant',
-    text: '안녕하세요! 경영학전공 면담봇입니다. 전공 선택이나 진로에 대해 궁금한 점을 편하게 물어보세요 😊'
+    text: '안녕하세요. 경영학전공 면담봇입니다. 전공 선택이나 진로에 대해 궁금한 점을 편하게 물어봐주세요.'
   }])
   const [isProcessing, setIsProcessing] = useState(false)
   const [videoReady, setVideoReady]     = useState(false)
