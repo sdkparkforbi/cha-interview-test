@@ -215,11 +215,26 @@ export default function App() {
 
   // 답변 끝나면 (isProcessing false + autoListen 켜져있으면) 자동 마이크 재시작
   useEffect(() => {
-    if (!isProcessing && autoListen && sessionRef.current && !isListeningRef.current) {
+    if (!isProcessing && autoListen && sessionRef.current && !isListeningRef.current && !isSpeakingRef.current) {
       const t = setTimeout(() => startListening(), 500)
       return () => clearTimeout(t)
     }
   }, [isProcessing, autoListen, startListening])
+
+  // ─── 봇 발화 중 마이크 stop (echo로 봇 음성이 새 질문이 되는 무한루프 방지) ───
+  // status === 'speaking' 들어오면 STT off, 'connected'로 빠지면 다시 on (autoListen 켜져있을 때만)
+  useEffect(() => {
+    if (status === 'speaking') {
+      // 발화 시작 → 마이크 즉시 끔 (autoListen 플래그는 유지)
+      if (recognitionRef.current && isListeningRef.current) {
+        try { recognitionRef.current.stop() } catch {}
+      }
+    } else if (status === 'connected' && autoListenRef.current && !isListeningRef.current && !isProcessingRef.current) {
+      // 발화 종료 → 잠시 후 마이크 다시 on (트랙 잔향 회피 위해 800ms 지연)
+      const t = setTimeout(() => startListening(), 800)
+      return () => clearTimeout(t)
+    }
+  }, [status, startListening])
 
   // ─── 마이크 토글 (사용자 액션) ─────────────────────
   const toggleMic = useCallback(() => {
