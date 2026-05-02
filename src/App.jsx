@@ -17,10 +17,7 @@ async function callProxy(endpoint, payload) {
 
 export default function App() {
   const [status, setStatus]             = useState('idle')   // idle | connecting | connected | speaking | listening
-  const [messages, setMessages]         = useState([{
-    role: 'assistant',
-    text: '안녕하세요. 경영학전공 면담봇입니다. 전공 선택이나 진로에 대해 궁금한 점을 편하게 물어봐주세요.'
-  }])
+  const [messages, setMessages]         = useState([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [videoReady, setVideoReady]     = useState(false)
   const [isListening, setIsListening]   = useState(false)
@@ -261,11 +258,33 @@ export default function App() {
 
       setStatus('connected')
 
+      // 인사말 — 채팅 표시 + 아바타 발화
+      const greetingText =
+        '안녕하세요. 차의과학대학교 경영학전공 박대근 교수의 AI 면담 어시스턴트예요. ' +
+        '전공 선택이나 진로에 대해 궁금한 점을 편하게 물어봐 주세요.'
+      const greetingTts =
+        '안녕하세요. 차 의과학 대학교 경영학 전공 박대근 교수의 에이아이 면담 어시스턴트예요. ' +
+        '전공 선택이나 진로에 대해 궁금한 점을 편하게 물어봐 주세요.'
+
+      setMessages([{ role: 'assistant', text: greetingText }])
+
+      // 인사말 발화 (트랙 attach 직후엔 종종 첫 task 누락되므로 약간 지연)
+      setTimeout(async () => {
+        try {
+          await callProxy('streaming.task', {
+            session_id: sessionRef.current.session_id,
+            text: greetingTts,
+            task_type: 'repeat'
+          })
+        } catch (e) { console.error('greeting task error:', e) }
+      }, 800)
+
       // 마이크 자동 활성화 (사용자 클릭(시작 버튼) 컨텍스트 안이라 권한 prompt 가능)
       if (initRecognition()) {
         autoListenRef.current = true
         setAutoListen(true)
-        setTimeout(() => startListening(), 300)
+        // 인사말 끝날 때까지 기다리고 마이크 켜기 (대략 8초 잡아둠 — 인사말 끝 이벤트로 더 정밀해짐)
+        setTimeout(() => startListening(), 8000)
       }
     } catch (e) {
       console.error(e)
