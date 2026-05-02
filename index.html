@@ -2,7 +2,28 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <!-- 카카오톡 인앱 브라우저 → Chrome 강제 전환 (마이크/WebRTC 권한 위함) -->
+    <script>
+    (function(){
+      var ua = navigator.userAgent || '';
+      if (/KAKAOTALK/i.test(ua)) {
+        var currentUrl = location.href;
+        if (/Android/i.test(ua)) {
+          location.href = 'intent://' + currentUrl.replace(/https?:\/\//, '') +
+            '#Intent;scheme=https;package=com.android.chrome;end';
+          return;
+        }
+        if (/iPhone|iPad|iPod/i.test(ua)) {
+          location.href = 'googlechromes://' + currentUrl.replace(/https?:\/\//, '');
+          setTimeout(function(){ location.href = currentUrl; }, 1000);
+          return;
+        }
+      }
+    })();
+    </script>
+
     <title>박대근 교수 면담봇 | 차의과학대 경영학전공</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
