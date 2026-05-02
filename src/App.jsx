@@ -244,6 +244,40 @@ export default function App() {
     }
   }, [initRecognition, startListening, stopListening])
 
+  // ─── 아바타 종료 ───────────────────────────────────
+  const stopAvatar = useCallback(async () => {
+    // STT 중지
+    autoListenRef.current = false
+    setAutoListen(false)
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop() } catch {}
+      try { recognitionRef.current.abort?.() } catch {}
+      recognitionRef.current = null
+    }
+    setIsListening(false)
+
+    // HeyGen 세션 종료 (best-effort)
+    if (sessionRef.current) {
+      try {
+        await callProxy('streaming.stop', { session_id: sessionRef.current.session_id })
+      } catch (e) { console.warn('streaming.stop error:', e) }
+    }
+
+    // LiveKit 연결 끊기
+    if (roomRef.current) {
+      try { await roomRef.current.disconnect() } catch {}
+      roomRef.current = null
+    }
+
+    // 상태 리셋
+    sessionRef.current     = null
+    sessionIdRef.current   = null
+    historyRef.current     = []
+    setVideoReady(false)
+    setStatus('idle')
+    setMessages([])           // 채팅 초기화 — 깔끔하게 다시 시작
+  }, [])
+
   // ─── 아바타 시작 ───────────────────────────────────
   const startAvatar = useCallback(async () => {
     setStatus('connecting')
@@ -328,6 +362,7 @@ export default function App() {
         videoRef={videoRef}
         videoReady={videoReady}
         onStart={startAvatar}
+        onStop={stopAvatar}
         isListening={isListening}
       />
       <ChatPanel

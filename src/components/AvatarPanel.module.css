@@ -202,6 +202,35 @@
   font-size: 12px;
 }
 
+/* 종료 버튼 — 빨강 톤 */
+.stopBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 28px;
+  background: rgba(220, 38, 38, 0.12);
+  color: #fca5a5;
+  border: 1px solid rgba(220, 38, 38, 0.4);
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: -0.2px;
+}
+.stopBtn:hover {
+  background: rgba(220, 38, 38, 0.22);
+  color: #fff;
+  border-color: rgba(220, 38, 38, 0.7);
+}
+@media (max-width: 768px) {
+  .stopBtn {
+    padding: 9px 18px;
+    font-size: 12px;
+  }
+}
+
 /* 스피너 */
 .spinner {
   display: inline-block;

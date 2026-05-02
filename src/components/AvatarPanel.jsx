@@ -7,7 +7,7 @@ const STATUS_MAP = {
   speaking:   { label: '말하는 중', dot: 'blue'  },
 }
 
-export default function AvatarPanel({ status, videoRef, videoReady, onStart }) {
+export default function AvatarPanel({ status, videoRef, videoReady, onStart, onStop }) {
   const { label, dot } = STATUS_MAP[status] || STATUS_MAP.idle
 
   return (
@@ -64,6 +64,17 @@ export default function AvatarPanel({ status, videoRef, videoReady, onStart }) {
       {status === 'connecting' && (
         <button className={styles.startBtn} disabled>
           <span className={styles.spinner} /> 연결 중…
+        </button>
+      )}
+      {(status === 'connected' || status === 'speaking') && (
+        <button
+          className={styles.stopBtn}
+          onClick={() => {
+            if (window.confirm('대화를 종료할까요? 채팅 기록은 초기화돼요.')) onStop?.()
+          }}
+        >
+          <span className={styles.startBtnIcon}>■</span>
+          대화 종료
         </button>
       )}
     </div>
