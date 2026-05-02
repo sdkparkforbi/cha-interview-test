@@ -23,7 +23,7 @@ function Message({ msg }) {
   )
 }
 
-export default function ChatPanel({ messages, isProcessing, onSend, isListening, onToggleMic, micEnabled, user, onLoginClick, onLogout }) {
+export default function ChatPanel({ messages, isProcessing, onSend, connected, isListening, onToggleMic, micEnabled, user, onLoginClick, onLogout }) {
   const [input, setInput]       = useState('')
   const bottomRef               = useRef(null)
   const textareaRef             = useRef(null)
@@ -105,14 +105,18 @@ export default function ChatPanel({ messages, isProcessing, onSend, isListening,
           value={input}
           onChange={handleInput}
           onKeyDown={handleKey}
-          placeholder={isListening ? '듣고 있어요…' : '궁금한 점을 입력하세요…'}
+          placeholder={
+            !connected ? '먼저 [아바타 시작] 버튼을 눌러주세요'
+            : isListening ? '듣고 있어요…'
+            : '궁금한 점을 입력하세요…'
+          }
           rows={1}
-          disabled={isProcessing}
+          disabled={isProcessing || !connected}
         />
         <button
           className={styles.sendBtn}
           onClick={handleSend}
-          disabled={isProcessing || !input.trim()}
+          disabled={isProcessing || !input.trim() || !connected}
         >
           {isProcessing ? <span className={styles.spinner} /> : '↑'}
         </button>
