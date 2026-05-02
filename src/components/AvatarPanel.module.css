@@ -216,3 +216,83 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ════════════════════════════════════════════════
+   📱 모바일 (≤768px)
+   - 가로 100% / 세로 40% 차지
+   - 비디오 작게 (가로 가득까진 X, 화면 절반쯤)
+   - 오브·placeholder 텍스트 줄임
+   ════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .panel {
+    width: 100%;
+    height: 40%;
+    min-height: 280px;
+    padding: 12px 16px;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .orb {
+    width: 300px;
+    height: 300px;
+  }
+
+  .videoWrap {
+    max-width: 180px;
+    aspect-ratio: 3/4;
+    border-radius: 18px;
+  }
+
+  .avatarIcon {
+    width: 64px;
+    height: 64px;
+    font-size: 30px;
+    margin-bottom: 4px;
+  }
+
+  .placeholderText {
+    font-size: 14px;
+  }
+
+  .placeholderSub {
+    font-size: 10px;
+  }
+
+  .nameplate {
+    padding: 10px 14px;
+  }
+
+  .nameplateName {
+    font-size: 13px;
+  }
+
+  .nameplateSub {
+    font-size: 10px;
+  }
+
+  .nameplateInner::before {
+    width: 24px;
+    margin-bottom: 6px;
+  }
+
+  .startBtn {
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+
+  .statusLabel {
+    font-size: 11px;
+  }
+}
+
+/* 매우 작은 화면 (≤380px) */
+@media (max-width: 380px) {
+  .panel {
+    height: 36%;
+    min-height: 240px;
+  }
+  .videoWrap {
+    max-width: 150px;
+  }
+}
