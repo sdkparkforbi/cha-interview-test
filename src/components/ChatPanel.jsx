@@ -23,7 +23,7 @@ function Message({ msg }) {
   )
 }
 
-export default function ChatPanel({ messages, isProcessing, onSend, isListening, onToggleMic, micEnabled }) {
+export default function ChatPanel({ messages, isProcessing, onSend, isListening, onToggleMic, micEnabled, user, onLoginClick, onLogout }) {
   const [input, setInput]       = useState('')
   const bottomRef               = useRef(null)
   const textareaRef             = useRef(null)
@@ -63,7 +63,20 @@ export default function ChatPanel({ messages, isProcessing, onSend, isListening,
           <span className={styles.headerIcon}>💬</span>
           <span className={styles.headerTitle}>면담 대화</span>
         </div>
-        <span className={styles.headerSub}>AI Powered by Gemma4</span>
+        {user ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span className={styles.headerSub}>{user.name}님</span>
+            <button
+              onClick={onLogout}
+              style={{ background: 'transparent', border: '1px solid #2a2a32', color: '#888', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer' }}
+            >로그아웃</button>
+          </div>
+        ) : (
+          <button
+            onClick={onLoginClick}
+            style={{ background: '#2a2a32', border: 'none', color: '#e6e6e6', borderRadius: 6, padding: '6px 14px', fontSize: 13, cursor: 'pointer' }}
+          >로그인</button>
+        )}
       </div>
 
       {/* 메시지 목록 */}

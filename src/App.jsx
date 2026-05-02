@@ -1,7 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import AvatarPanel from './components/AvatarPanel'
 import ChatPanel from './components/ChatPanel'
+import AuthModal from './components/AuthModal'
 import styles from './App.module.css'
+import { getUser, clearAuth, verifyToken, newSessionId, saveChat } from './lib/api'
 
 const AVATAR_ID = 'e2eb35c947644f09820aa3a4f9c15488'
 const VOICE_ID  = '15d128072e194dc399d2898967941897'
@@ -22,11 +24,24 @@ export default function App() {
   const [videoReady, setVideoReady]     = useState(false)
   const [isListening, setIsListening]   = useState(false)
   const [autoListen, setAutoListen]     = useState(false)
+  const [user, setUser]                 = useState(getUser())     // 로그인된 사용자 (없으면 null = 익명)
+  const [authOpen, setAuthOpen]         = useState(false)
 
   const roomRef           = useRef(null)
   const sessionRef        = useRef(null)
   const videoRef          = useRef(null)
   const historyRef        = useRef([])
+  const sessionIdRef      = useRef(null)   // 학교 DB용 세션 ID (아바타 시작 시 새로)
+
+  // 토큰 검증 (저장된 토큰이 있으면 서버에 verify)
+  useEffect(() => {
+    verifyToken().then(u => { if (u) setUser(u) })
+  }, [])
+
+  const handleLogout = () => {
+    clearAuth()
+    setUser(null)
+  }
 
   // STT
   const recognitionRef    = useRef(null)
@@ -62,6 +77,9 @@ export default function App() {
     setMessages(prev => [...prev, { role: 'user', text }])
     historyRef.current = [...historyRef.current, { role: 'user', content: text }]
 
+    // DB 저장 (사용자 메시지)
+    if (sessionIdRef.current) saveChat(sessionIdRef.current, 'user', text)
+
     setMessages(prev => [...prev, { role: 'assistant', text: null }]) // typing
 
     try {
@@ -80,6 +98,9 @@ export default function App() {
         return next
       })
       historyRef.current = [...historyRef.current, { role: 'assistant', content: reply }]
+
+      // DB 저장 (어시스턴트 답변)
+      if (sessionIdRef.current) saveChat(sessionIdRef.current, 'assistant', reply)
 
       // HeyGen 발화
       if (sessionRef.current) {
@@ -220,6 +241,7 @@ export default function App() {
   // ─── 아바타 시작 ───────────────────────────────────
   const startAvatar = useCallback(async () => {
     setStatus('connecting')
+    sessionIdRef.current = newSessionId()  // 새 세션 ID
     try {
       const tokenRes = await fetch('/api/heygen-token', { method: 'POST' }).then(r => r.json())
       if (!tokenRes.token) throw new Error('HeyGen 토큰 발급 실패: ' + JSON.stringify(tokenRes))
@@ -267,6 +289,7 @@ export default function App() {
         '전공 선택이나 진로에 대해 궁금한 점을 편하게 물어봐 주세요.'
 
       setMessages([{ role: 'assistant', text: greetingText }])
+      saveChat(sessionIdRef.current, 'assistant', greetingText)  // 인사말도 저장
 
       // 인사말 발화 (트랙 attach 직후엔 종종 첫 task 누락되므로 약간 지연)
       setTimeout(async () => {
@@ -309,6 +332,14 @@ export default function App() {
         isListening={isListening}
         onToggleMic={toggleMic}
         micEnabled={status !== 'idle' && status !== 'connecting'}
+        user={user}
+        onLoginClick={() => setAuthOpen(true)}
+        onLogout={handleLogout}
+      />
+      <AuthModal
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        onSuccess={(u) => setUser(u)}
       />
     </div>
   )
