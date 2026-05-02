@@ -28,6 +28,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+    <script src="https://developers.kakao.com/sdk/js/kakao.min.js"></script>
+    <script>
+      // 카카오 SDK init (한 번만)
+      window.addEventListener('DOMContentLoaded', function () {
+        try {
+          if (window.Kakao && !window.Kakao.isInitialized()) {
+            window.Kakao.init('fc0a1313d895b1956f3830e5bf14307b');
+          }
+        } catch (e) { console.error('Kakao init error:', e); }
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

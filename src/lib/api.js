@@ -53,6 +53,41 @@ export async function kakaoLogin(kakao_id, nickname, email) {
   return r
 }
 
+// Kakao SDK 호출 → 사용자 정보 받아 학교 서버로 로그인
+export function startKakaoLogin() {
+  return new Promise((resolve, reject) => {
+    if (!window.Kakao || !window.Kakao.Auth) {
+      reject(new Error('카카오 SDK가 로드되지 않았어요.'))
+      return
+    }
+    try { window.Kakao.Auth.setAccessToken(null) } catch {}
+    const timeout = setTimeout(() => reject(new Error('로그인 시간이 초과됐어요.')), 45000)
+    window.Kakao.Auth.login({
+      success: () => {
+        clearTimeout(timeout)
+        window.Kakao.API.request({
+          url: '/v2/user/me',
+          success: async (res) => {
+            const nickname = res?.kakao_account?.profile?.nickname || '사용자'
+            const kakaoId  = String(res.id)
+            const email    = res?.kakao_account?.email || null
+            try {
+              const r = await kakaoLogin(kakaoId, nickname, email)
+              if (r.success) resolve(r.user)
+              else reject(new Error(r.error || '서버 로그인 실패'))
+            } catch (e) { reject(e) }
+          },
+          fail: (err) => reject(new Error('카카오 사용자 정보를 가져오지 못했어요.'))
+        })
+      },
+      fail: (err) => {
+        clearTimeout(timeout)
+        reject(new Error('카카오 로그인이 취소됐어요.'))
+      }
+    })
+  })
+}
+
 export async function verifyToken() {
   const token = getToken()
   if (!token) return null
