@@ -28,12 +28,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-// ─── DB ───
-$db_host = 'localhost';
-$db_name = 'cha_interview_db';
-$db_user = 'user2';
-$db_pass = 'user2!!';
-$JWT_SECRET = 'cha_interview_jwt_secret_2026';
+// ─── DB / JWT (환경변수에서 로드 — Apache .htaccess SetEnv) ───
+$db_host    = 'localhost';
+$db_name    = 'cha_interview_db';
+$db_user    = getenv('CHA_DB_USER')    ?: '';
+$db_pass    = getenv('CHA_DB_PASS')    ?: '';
+$JWT_SECRET = getenv('CHA_JWT_SECRET') ?: '';
+
+if (empty($db_user) || empty($db_pass) || empty($JWT_SECRET)) {
+    error_log('[interview-api] Missing env: CHA_DB_USER / CHA_DB_PASS / CHA_JWT_SECRET');
+    echo json_encode(array('success' => false, 'error' => 'Server configuration error'));
+    exit;
+}
 
 try {
     $pdo = new PDO(

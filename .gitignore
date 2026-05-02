@@ -14,3 +14,7 @@ docs/DEVLOG.md
 server/test_*.json
 server/test_*.txt
 server/debug_*.js
+
+# .htaccess (실제 운영 비밀 포함)
+server/.htaccess.example
+**/.htaccess
