@@ -261,6 +261,8 @@ api.php                    ← PHP 5.4 호환, JWT + bcrypt(crypt) + PDO MySQL
 | 11:20 | `8591762` | 모바일 반응형 (flex-column, 100dvh, safe-area) |
 | 11:30 | `1d14e17` | 첫 접속 시 자동 로그인 모달 |
 | 11:32 | `cb5648c` | **AuthModal v5 패턴 리디자인** (카카오 + 동의 + 이메일 + 게스트) |
+| 12:50 | `b38cc91` | **대화 종료 버튼** + DEVLOG.md 초안 |
+| 13:20 | `0148a83` | **ESC 키 인터럽트** (OAC 규성 SOFT-INTERRUPT 패턴 차용) — echo 기반 자동 interrupt 제거 |
 
 ---
 
@@ -297,6 +299,13 @@ api.php                    ← PHP 5.4 호환, JWT + bcrypt(crypt) + PDO MySQL
 ### 9-6. 카톡 인앱 브라우저에서 마이크/WebRTC 실패
 **원인**: 카톡 in-app은 미디어 권한이 까다로움.
 **해결**: `cha-biz-ai-v11`에 있던 패턴 발견·이식. UA에 `KAKAOTALK` 감지 → Android는 `intent://` Chrome, iOS는 `googlechromes://`.
+
+### 9-7. 음성 echo로 자기 발화 자동 interrupt
+**증상**: 헤드폰 미사용 시 HeyGen 아바타 음성이 마이크로 들어가 → STT가 사용자 발화로 오인 → 자동 `streaming.interrupt` 호출 → 발화가 시작하자마자 끊김.
+**해결**:
+1. STT `onresult`의 echo 기반 자동 interrupt 코드 제거.
+2. **ESC 키 명시적 interrupt** 도입 (OAC 규성 SOFT-INTERRUPT 패턴 그대로). `window` + `document` 양쪽에 capture phase 등록, `status === 'speaking'` 일 때만 동작, textarea/input blur 처리.
+3. 향후 음성 VAD interrupt는 RMS 기반(OAC `patchVoiceInterrupt` 패턴)으로 옵션 추가 가능 — 헤드폰 사용 가이드 필요.
 
 ---
 
@@ -352,9 +361,10 @@ ssh -p 10022 user2@... "echo 'user2!!' | sudo -S cp /tmp/api.php /var/www/html/i
 ## 11. 미해결 / 향후 계획
 
 ### 핵심 누락 (P1)
-- [ ] **종료/재시작 버튼** — 새로고침 외에 세션 끝낼 방법 없음
-- [ ] **Interrupt echo 방지** — 헤드폰 안 쓰면 자기 발화 끊김. 키워드 매칭("잠깐/그만") 필요
-- [ ] **자막 표시** — 발화 중 텍스트 동시 노출 (접근성)
+- [x] ~~**종료/재시작 버튼**~~ → ✅ `b38cc91` 완료. confirm → STT/LiveKit/세션 정리 + idle 복귀
+- [x] ~~**Interrupt echo 방지**~~ → ✅ `0148a83` ESC 키 명시적 interrupt로 해결 (echo 기반 코드 제거)
+- [ ] **음성 VAD interrupt** (옵션) — OAC `patchVoiceInterrupt` 패턴(RMS 임계값) 차용 가능. 헤드폰 권장 가이드 필요
+- [ ] **자막 표시** — 사용자 결정: "채팅 메시지에 뜨니 별도 자막 불필요"로 보류
 
 ### 운영 (P2)
 - [ ] OG 메타태그 추가 (`middleton.p-e.kr/ui/index.html` 카톡 미리보기 복구) — nginx `sub_filter` 또는 정적 파일 직접 수정
@@ -370,7 +380,17 @@ ssh -p 10022 user2@... "echo 'user2!!' | sudo -S cp /tmp/api.php /var/www/html/i
 
 ---
 
-## 12. 보안 / 개인정보
+## 12. 키보드 단축키
+
+| 키 | 동작 | 조건 |
+|---|---|---|
+| `ESC` | 아바타 발화 중단 (interrupt) | `status === 'speaking'` 일 때만. textarea/input 포커스 중에도 동작(blur 후 interrupt). 무시 시점에는 기본 동작 보존. |
+| `Enter` | 채팅 메시지 전송 | 입력창 포커스 시 |
+| `Shift+Enter` | 채팅 줄바꿈 | 입력창 포커스 시 |
+
+---
+
+## 13. 보안 / 개인정보
 
 - **개인정보 수집**: 이름·이메일·카카오 닉네임 (동의 체크박스 필수)
 - **저장 위치**: 학교 서버 MySQL (`cha_interview_db`)
@@ -382,7 +402,7 @@ ssh -p 10022 user2@... "echo 'user2!!' | sudo -S cp /tmp/api.php /var/www/html/i
 
 ---
 
-## 13. 참고 / 자료
+## 14. 참고 / 자료
 
 - **HeyGen Streaming API**: https://docs.liveavatar.com (마이그레이션 가이드)
 - **LiveKit Client SDK**: WebRTC 송수신
