@@ -170,10 +170,7 @@ export default function App() {
         else interim += t
       }
 
-      // 아바타 발화 중 사용자가 말하면 interrupt
-      if (isSpeakingRef.current && (final.trim() || (interim.trim() && interim.trim().length > 2))) {
-        await interruptAvatar()
-      }
+      // (echo 기반 자동 interrupt 제거 — ESC 키로 명시적 처리. 헤드폰 미사용 시 안정성 ↑)
 
       if (final.trim()) {
         stopListening()
@@ -243,6 +240,30 @@ export default function App() {
       startListening()
     }
   }, [initRecognition, startListening, stopListening])
+
+  // ─── ESC 키로 발화 인터럽트 (OAC 규성 SOFT-INTERRUPT 패턴 차용) ───
+  // - status === 'speaking' 일 때만 동작
+  // - window + document 양쪽 capture phase 등록 (브라우저 누락 방어)
+  // - textarea/input 포커스 중에도 동작 (blur 후 interrupt)
+  useEffect(() => {
+    const handleGlobalKeydown = (e) => {
+      if (e.key !== 'Escape' && e.code !== 'Escape') return
+      if (!isSpeakingRef.current) return
+      e.preventDefault()
+      e.stopPropagation()
+      const target = e.target
+      if (target && (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT')) {
+        target.blur()
+      }
+      interruptAvatar()
+    }
+    window.addEventListener('keydown', handleGlobalKeydown, true)
+    document.addEventListener('keydown', handleGlobalKeydown, true)
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeydown, true)
+      document.removeEventListener('keydown', handleGlobalKeydown, true)
+    }
+  }, [interruptAvatar])
 
   // ─── 아바타 종료 ───────────────────────────────────
   const stopAvatar = useCallback(async () => {
