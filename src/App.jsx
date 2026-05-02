@@ -25,7 +25,8 @@ export default function App() {
   const [isListening, setIsListening]   = useState(false)
   const [autoListen, setAutoListen]     = useState(false)
   const [user, setUser]                 = useState(getUser())     // 로그인된 사용자 (없으면 null = 익명)
-  const [authOpen, setAuthOpen]         = useState(false)
+  // 첫 접속 시 자동으로 로그인 모달 — 저장된 토큰(=user)이 있으면 안 띄움
+  const [authOpen, setAuthOpen]         = useState(() => !getUser())
 
   const roomRef           = useRef(null)
   const sessionRef        = useRef(null)
@@ -33,9 +34,14 @@ export default function App() {
   const historyRef        = useRef([])
   const sessionIdRef      = useRef(null)   // 학교 DB용 세션 ID (아바타 시작 시 새로)
 
-  // 토큰 검증 (저장된 토큰이 있으면 서버에 verify)
+  // 토큰 검증 — 성공하면 모달 닫음 / 실패하면 모달 유지 (이미 열려있음)
   useEffect(() => {
-    verifyToken().then(u => { if (u) setUser(u) })
+    verifyToken().then(u => {
+      if (u) {
+        setUser(u)
+        setAuthOpen(false)
+      }
+    })
   }, [])
 
   const handleLogout = () => {
