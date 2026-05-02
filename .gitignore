@@ -5,3 +5,12 @@ node_modules/
 .vercel/
 *.log
 dist/
+
+# 개발 문서 (민감정보 포함, 외부 공개 X)
+docs/GUIDE.md
+docs/DEVLOG.md
+
+# 테스트 파일 (실제 토큰/비밀번호 포함)
+server/test_*.json
+server/test_*.txt
+server/debug_*.js
