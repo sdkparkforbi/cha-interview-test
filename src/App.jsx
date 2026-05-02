@@ -78,6 +78,11 @@ export default function App() {
   const sendMessage = useCallback(async (userText) => {
     const text = userText.trim()
     if (!text || isProcessingRef.current) return
+    // 봇 발화 중에 STT가 echo로 final 잡으면 여기서 방어 (echo 무한루프 차단 마지막 보루)
+    if (isSpeakingRef.current) {
+      console.warn('[echo guard] sendMessage suppressed during avatar speaking:', text.slice(0, 30))
+      return
+    }
     setIsProcessing(true)
 
     setMessages(prev => [...prev, { role: 'user', text }])
@@ -170,7 +175,10 @@ export default function App() {
         else interim += t
       }
 
-      // (echo 기반 자동 interrupt 제거 — ESC 키로 명시적 처리. 헤드폰 미사용 시 안정성 ↑)
+      // ─── echo 가드: 봇 발화 중 또는 LLM 처리 중에는 STT 결과 완전 무시 ───
+      if (isSpeakingRef.current || isProcessingRef.current) {
+        return
+      }
 
       if (final.trim()) {
         stopListening()
@@ -225,13 +233,14 @@ export default function App() {
   // status === 'speaking' 들어오면 STT off, 'connected'로 빠지면 다시 on (autoListen 켜져있을 때만)
   useEffect(() => {
     if (status === 'speaking') {
-      // 발화 시작 → 마이크 즉시 끔 (autoListen 플래그는 유지)
-      if (recognitionRef.current && isListeningRef.current) {
+      // 발화 시작 → 마이크 즉시 abort (stop은 마지막 결과 emit, abort는 즉시 종료)
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort() } catch {}
         try { recognitionRef.current.stop() } catch {}
       }
     } else if (status === 'connected' && autoListenRef.current && !isListeningRef.current && !isProcessingRef.current) {
-      // 발화 종료 → 잠시 후 마이크 다시 on (트랙 잔향 회피 위해 800ms 지연)
-      const t = setTimeout(() => startListening(), 800)
+      // 발화 종료 → 잠시 후 마이크 다시 on (트랙 잔향 회피 위해 1초 지연)
+      const t = setTimeout(() => startListening(), 1000)
       return () => clearTimeout(t)
     }
   }, [status, startListening])
