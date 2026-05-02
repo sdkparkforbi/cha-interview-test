@@ -263,6 +263,8 @@ api.php                    ← PHP 5.4 호환, JWT + bcrypt(crypt) + PDO MySQL
 | 11:32 | `cb5648c` | **AuthModal v5 패턴 리디자인** (카카오 + 동의 + 이메일 + 게스트) |
 | 12:50 | `b38cc91` | **대화 종료 버튼** + DEVLOG.md 초안 |
 | 13:20 | `0148a83` | **ESC 키 인터럽트** (OAC 규성 SOFT-INTERRUPT 패턴 차용) — echo 기반 자동 interrupt 제거 |
+| 14:30 | `c5b6b87` | **GUIDE.md** (학습용 개발문서) 작성 |
+| 14:50 | `b9b802a` | **교수님 피드백 1차**: ① echo 무한루프 차단 (봇 발화 중 STT stop, 종료 후 800ms 재시작) ② OG 메타태그 + Twitter Card 추가 ③ iOS 카톡→Safari 외부 전환 (`kakaotalk://web/openExternal`) |
 
 ---
 
@@ -306,6 +308,17 @@ api.php                    ← PHP 5.4 호환, JWT + bcrypt(crypt) + PDO MySQL
 1. STT `onresult`의 echo 기반 자동 interrupt 코드 제거.
 2. **ESC 키 명시적 interrupt** 도입 (OAC 규성 SOFT-INTERRUPT 패턴 그대로). `window` + `document` 양쪽에 capture phase 등록, `status === 'speaking'` 일 때만 동작, textarea/input blur 처리.
 3. 향후 음성 VAD interrupt는 RMS 기반(OAC `patchVoiceInterrupt` 패턴)으로 옵션 추가 가능 — 헤드폰 사용 가이드 필요.
+
+### 9-8. 답변이 다시 새 질문이 되는 무한루프 (교수님 피드백)
+**증상**: 봇이 답변하면 그 답변이 다시 새 질문으로 처리됨. 채팅이 자동으로 무한히 이어짐.
+**원인 분석 후보**:
+1. ❌ HeyGen `task_type` 잘못 설정 → 코드 확인 결과 `'repeat'`으로 명시 중. 정상.
+2. ✅ STT echo (실제 원인): 9-7과 동일 메커니즘이지만 결과가 다름. `onresult`의 자동 interrupt를 제거했더니 → 발화는 안 끊기지만 echo final이 `sendMessage()` 호출 → 봇 답변 텍스트 자체가 새 질문이 됨.
+**해결**: **봇 발화 중 STT stop**. `useEffect([status])`에서:
+- `status === 'speaking'` 들어오면 `recognition.stop()`
+- `status === 'connected'`로 돌아오면 800ms 후 `startListening()` (autoListen ON일 때만)
+- 자동 마이크 재시작 useEffect도 `!isSpeakingRef.current` 가드 추가
+헤드폰 미사용해도 echo가 STT에 안 닿으므로 무한루프 차단. ESC interrupt는 그대로 유지(명시적 중단).
 
 ---
 
