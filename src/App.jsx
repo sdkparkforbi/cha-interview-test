@@ -56,6 +56,7 @@ export default function App() {
   const isProcessingRef   = useRef(false)
   const autoListenRef     = useRef(false)
   const isListeningRef    = useRef(false)
+  const echoGuardUntilRef = useRef(0)
 
   useEffect(() => { isProcessingRef.current = isProcessing }, [isProcessing])
   useEffect(() => { autoListenRef.current   = autoListen }, [autoListen])
@@ -64,12 +65,21 @@ export default function App() {
 
   // ─── HeyGen interrupt ────────────────────────────
   const interruptAvatar = useCallback(async () => {
-    if (!isSpeakingRef.current || !sessionRef.current) return
-    try {
-      await callProxy('streaming.interrupt', {
-        session_id: sessionRef.current.session_id
-      })
-    } catch (e) { console.error('interrupt error:', e) }
+    echoGuardUntilRef.current = Date.now() + 1800
+    clearTimeout(silenceTimerRef.current)
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort() } catch {}
+      try { recognitionRef.current.stop() } catch {}
+    }
+    isListeningRef.current = false
+    setIsListening(false)
+    if (sessionRef.current) {
+      try {
+        await callProxy('streaming.interrupt', {
+          session_id: sessionRef.current.session_id
+        })
+      } catch (e) { console.error('interrupt error:', e) }
+    }
     isSpeakingRef.current = false
     setStatus('connected')
   }, [])
@@ -115,6 +125,8 @@ export default function App() {
 
       // HeyGen 발화
       if (sessionRef.current) {
+        isSpeakingRef.current = true
+        setStatus('speaking')
         await callProxy('streaming.task', {
           session_id: sessionRef.current.session_id,
           text: ttsReply,
@@ -145,6 +157,7 @@ export default function App() {
   const startListening = useCallback(() => {
     if (!recognitionRef.current || isListeningRef.current || isProcessingRef.current) return
     if (!sessionRef.current) return
+    if (isSpeakingRef.current || Date.now() < echoGuardUntilRef.current) return
     try { recognitionRef.current.start() } catch {}
   }, [])
 
@@ -176,7 +189,7 @@ export default function App() {
       }
 
       // ─── echo 가드: 봇 발화 중 또는 LLM 처리 중에는 STT 결과 완전 무시 ───
-      if (isSpeakingRef.current || isProcessingRef.current) {
+      if (isSpeakingRef.current || isProcessingRef.current || Date.now() < echoGuardUntilRef.current) {
         return
       }
 
@@ -200,8 +213,10 @@ export default function App() {
         autoListenRef.current = false
         setAutoListen(false)
       } else if (event.error === 'no-speech') {
-        if (autoListenRef.current && sessionRef.current && !isProcessingRef.current) {
-          setTimeout(() => startListening(), 500)
+        if (autoListenRef.current && sessionRef.current && !isProcessingRef.current && !isSpeakingRef.current && Date.now() >= echoGuardUntilRef.current) {
+          setTimeout(() => {
+            if (!isSpeakingRef.current && Date.now() >= echoGuardUntilRef.current) startListening()
+          }, 500)
         }
       }
       isListeningRef.current = false
@@ -212,8 +227,10 @@ export default function App() {
       isListeningRef.current = false
       setIsListening(false)
       // 자동 listening 모드면 재시작
-      if (autoListenRef.current && sessionRef.current && !isProcessingRef.current) {
-        setTimeout(() => startListening(), 600)
+      if (autoListenRef.current && sessionRef.current && !isProcessingRef.current && !isSpeakingRef.current && Date.now() >= echoGuardUntilRef.current) {
+        setTimeout(() => {
+          if (!isSpeakingRef.current && Date.now() >= echoGuardUntilRef.current) startListening()
+        }, 600)
       }
     }
 
@@ -233,6 +250,7 @@ export default function App() {
   // status === 'speaking' 들어오면 STT off, 'connected'로 빠지면 다시 on (autoListen 켜져있을 때만)
   useEffect(() => {
     if (status === 'speaking') {
+      echoGuardUntilRef.current = Date.now() + 1200
       // 발화 시작 → 마이크 즉시 abort (stop은 마지막 결과 emit, abort는 즉시 종료)
       if (recognitionRef.current) {
         try { recognitionRef.current.abort() } catch {}
@@ -240,7 +258,8 @@ export default function App() {
       }
     } else if (status === 'connected' && autoListenRef.current && !isListeningRef.current && !isProcessingRef.current) {
       // 발화 종료 → 잠시 후 마이크 다시 on (트랙 잔향 회피 위해 1초 지연)
-      const t = setTimeout(() => startListening(), 1000)
+      const delay = Math.max(1000, echoGuardUntilRef.current - Date.now() + 100)
+      const t = setTimeout(() => startListening(), delay)
       return () => clearTimeout(t)
     }
   }, [status, startListening])
@@ -272,7 +291,7 @@ export default function App() {
   useEffect(() => {
     const handleGlobalKeydown = (e) => {
       if (e.key !== 'Escape' && e.code !== 'Escape') return
-      if (!isSpeakingRef.current) return
+      if (!sessionRef.current) return
       e.preventDefault()
       e.stopPropagation()
       const target = e.target
@@ -377,6 +396,8 @@ export default function App() {
       saveChat(sessionIdRef.current, 'assistant', greetingText)  // 인사말도 저장
 
       // 인사말 발화 (트랙 attach 직후엔 종종 첫 task 누락되므로 약간 지연)
+      isSpeakingRef.current = true
+      setStatus('speaking')
       setTimeout(async () => {
         try {
           await callProxy('streaming.task', {
