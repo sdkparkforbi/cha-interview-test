@@ -7,7 +7,7 @@ const STATUS_MAP = {
   speaking:   { label: '말하는 중', dot: 'blue'  },
 }
 
-export default function AvatarPanel({ status, videoRef, videoReady, onStart, onStop }) {
+export default function AvatarPanel({ status, videoRef, videoReady, onStart, onStop, onInterrupt }) {
   const { label, dot } = STATUS_MAP[status] || STATUS_MAP.idle
 
   return (
@@ -49,10 +49,18 @@ export default function AvatarPanel({ status, videoRef, videoReady, onStart, onS
       </div>
 
       {/* 상태 배지 */}
-      <div className={styles.statusRow}>
-        <span className={`${styles.dot} ${styles[dot]}`} />
-        <span className={styles.statusLabel}>{label}</span>
-      </div>
+      {status === 'speaking' ? (
+        <button className={styles.interruptBtn} onClick={onInterrupt} type="button" aria-label="말 멈추기">
+          <span className={`${styles.dot} ${styles[dot]}`} />
+          <span className={styles.pauseIcon}>||</span>
+          <span className={styles.statusLabel}>말 멈추기</span>
+        </button>
+      ) : (
+        <div className={styles.statusRow}>
+          <span className={`${styles.dot} ${styles[dot]}`} />
+          <span className={styles.statusLabel}>{label}</span>
+        </div>
+      )}
 
       {/* 시작 버튼 */}
       {status === 'idle' && (

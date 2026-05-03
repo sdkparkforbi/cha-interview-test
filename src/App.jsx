@@ -52,6 +52,7 @@ export default function App() {
   // STT
   const recognitionRef    = useRef(null)
   const silenceTimerRef   = useRef(null)
+  const accumulatedFinalRef = useRef('')
   const isSpeakingRef     = useRef(false)
   const isProcessingRef   = useRef(false)
   const autoListenRef     = useRef(false)
@@ -67,6 +68,7 @@ export default function App() {
   const interruptAvatar = useCallback(async () => {
     echoGuardUntilRef.current = Date.now() + 1800
     clearTimeout(silenceTimerRef.current)
+    accumulatedFinalRef.current = ''
     if (recognitionRef.current) {
       try { recognitionRef.current.abort() } catch {}
       try { recognitionRef.current.stop() } catch {}
@@ -147,6 +149,7 @@ export default function App() {
   // ─── STT (Web Speech API) ────────────────────────
   const stopListening = useCallback(() => {
     clearTimeout(silenceTimerRef.current)
+    accumulatedFinalRef.current = ''
     setIsListening(false)
     isListeningRef.current = false
     if (recognitionRef.current) {
@@ -194,12 +197,20 @@ export default function App() {
       }
 
       if (final.trim()) {
-        stopListening()
-        sendMessage(final.trim())
+        accumulatedFinalRef.current += final
+        silenceTimerRef.current = setTimeout(() => {
+          const text = accumulatedFinalRef.current.trim()
+          accumulatedFinalRef.current = ''
+          if (text) {
+            stopListening()
+            sendMessage(text)
+          }
+        }, 2000)
       } else if (interim) {
         silenceTimerRef.current = setTimeout(() => {
-          const text = interim.trim()
+          const text = (accumulatedFinalRef.current + interim).trim()
           if (text && text.length > 1) {
+            accumulatedFinalRef.current = ''
             stopListening()
             sendMessage(text)
           }
@@ -318,6 +329,7 @@ export default function App() {
       try { recognitionRef.current.abort?.() } catch {}
       recognitionRef.current = null
     }
+    accumulatedFinalRef.current = ''
     setIsListening(false)
 
     // HeyGen 세션 종료 (best-effort)
@@ -429,6 +441,7 @@ export default function App() {
         videoReady={videoReady}
         onStart={startAvatar}
         onStop={stopAvatar}
+        onInterrupt={interruptAvatar}
         isListening={isListening}
       />
       <ChatPanel
