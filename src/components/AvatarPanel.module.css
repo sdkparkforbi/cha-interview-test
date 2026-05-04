@@ -39,7 +39,7 @@
 .cameraWrap {
   position: relative;
   width: 100%;
-  max-width: 360px;
+  max-width: 240px;
   aspect-ratio: 9/16;
   border-radius: 24px;
   overflow: hidden;
@@ -62,7 +62,7 @@
 .videoWrap {
   position: relative;
   width: 100%;
-  max-width: 360px;
+  max-width: 240px;
   aspect-ratio: 9/16;
   border-radius: 24px;
   overflow: hidden;
