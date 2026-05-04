@@ -39,53 +39,55 @@ export default function AvatarPanel({
       <div className={styles.orb} />
 
       {/* 비디오 */}
-      <div className={styles.videoWrap}>
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          className={styles.video}
-          style={{ opacity: showAvatarVideo && videoReady ? 1 : 0 }}
-        />
-        {showAvatarVideo && !videoReady && (
-          <div className={styles.placeholder}>
-            <div className={styles.avatarIcon}>
-              <span>👨‍🏫</span>
+      <div className={styles.videoRow}>
+        <div className={styles.videoWrap}>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            className={styles.video}
+            style={{ opacity: showAvatarVideo && videoReady ? 1 : 0 }}
+          />
+          {showAvatarVideo && !videoReady && (
+            <div className={styles.placeholder}>
+              <div className={styles.avatarIcon}>
+                <span>👨‍🏫</span>
+              </div>
+              <p className={styles.placeholderText}>박대근 교수</p>
+              <p className={styles.placeholderSub}>차의과학대학교 신입생 담임교수</p>
             </div>
-            <p className={styles.placeholderText}>박대근 교수</p>
-            <p className={styles.placeholderSub}>차의과학대학교 신입생 담임교수</p>
-          </div>
-        )}
-        {showVoiceOnly && (
-          <div className={styles.modePlaceholder}>
-            <div className={styles.modeIcon}>STS</div>
-            <p className={styles.placeholderText}>음성 대화</p>
-            <p className={styles.placeholderSub}>영상 없이 말로 상담</p>
-          </div>
-        )}
-        {showTextOnly && (
-          <div className={styles.modePlaceholder}>
-            <div className={styles.modeIcon}>TTT</div>
-            <p className={styles.placeholderText}>텍스트 대화</p>
-            <p className={styles.placeholderSub}>마이크와 소리 없이 채팅</p>
-          </div>
-        )}
-
-        {/* 하단 네임플레이트 */}
-        {showAvatarVideo && videoReady && (
-          <div className={styles.nameplate}>
-            <div className={styles.nameplateInner}>
-              <span className={styles.nameplateName}>박대근 교수</span>
-              <span className={styles.nameplateSub}>차의과학대학교 신입생 담임교수</span>
+          )}
+          {showVoiceOnly && (
+            <div className={styles.modePlaceholder}>
+              <div className={styles.modeIcon}>STS</div>
+              <p className={styles.placeholderText}>음성 대화</p>
+              <p className={styles.placeholderSub}>영상 없이 말로 상담</p>
             </div>
-          </div>
-        )}
+          )}
+          {showTextOnly && (
+            <div className={styles.modePlaceholder}>
+              <div className={styles.modeIcon}>TTT</div>
+              <p className={styles.placeholderText}>텍스트 대화</p>
+              <p className={styles.placeholderSub}>마이크와 소리 없이 채팅</p>
+            </div>
+          )}
 
-        {/* 발화 중 글로우 */}
-        {status === 'speaking' && <div className={styles.speakGlow} />}
+          {/* 하단 네임플레이트 */}
+          {showAvatarVideo && videoReady && (
+            <div className={styles.nameplate}>
+              <div className={styles.nameplateInner}>
+                <span className={styles.nameplateName}>박대근 교수</span>
+                <span className={styles.nameplateSub}>차의과학대학교 신입생 담임교수</span>
+              </div>
+            </div>
+          )}
+
+          {/* 발화 중 글로우 */}
+          {status === 'speaking' && <div className={styles.speakGlow} />}
+        </div>
 
         {mode === 'ftf' && (
-          <div className={`${styles.cameraPreview} ${cameraActive ? styles.cameraOn : ''}`}>
+          <div className={`${styles.cameraWrap} ${cameraActive ? styles.cameraOn : ''}`}>
             <video
               ref={userVideoRef}
               autoPlay
@@ -94,7 +96,7 @@ export default function AvatarPanel({
               className={styles.cameraVideo}
               style={{ opacity: cameraActive ? 1 : 0 }}
             />
-            {!cameraActive && <span>CAM</span>}
+            {!cameraActive && <span className={styles.cameraLabel}>CAM</span>}
           </div>
         )}
       </div>

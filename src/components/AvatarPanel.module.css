@@ -24,6 +24,40 @@
   pointer-events: none;
 }
 
+/* 비디오 행: PC에서 아바타와 웹캠 좌우 나란히 */
+.videoRow {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+/* 웹캠 박스: 아바타와 동일한 크기·비율 */
+.cameraWrap {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  aspect-ratio: 9/16;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #0a0b10;
+  box-shadow: 0 0 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,162,126,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cameraLabel {
+  color: rgba(255,255,255,0.55);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
 /* 비디오 래퍼 */
 .videoWrap {
   position: relative;
@@ -159,6 +193,7 @@
   animation: pulseGlow 1.5s ease-in-out infinite;
 }
 
+/* (더 이상 사용되지 않지만 호환을 위해 남겨둠) */
 .cameraPreview {
   position: absolute;
   right: 12px;
@@ -415,10 +450,26 @@
     height: 300px;
   }
 
+  /* 모바일에서는 아바타와 웹캠을 좌우 나란히 (작게) */
+  .videoRow {
+    flex-direction: row;
+    gap: 8px;
+  }
+
   .videoWrap {
     max-width: 138px;
     aspect-ratio: 3/4;
     border-radius: 18px;
+  }
+
+  .cameraWrap {
+    max-width: 138px;
+    aspect-ratio: 3/4;
+    border-radius: 18px;
+  }
+
+  .cameraLabel {
+    font-size: 12px;
   }
 
   .avatarIcon {
@@ -505,6 +556,9 @@
     min-height: 292px;
   }
   .videoWrap {
+    max-width: 118px;
+  }
+  .cameraWrap {
     max-width: 118px;
   }
 }
