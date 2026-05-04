@@ -82,6 +82,24 @@ function getVisitGreeting(user) {
   return `${getUserDisplayName(user)}님 ${getKoreanVisitOrdinal(getVisitCount(user))} 방문을 환영합니다. `
 }
 
+function getGreetingText(user) {
+  return (
+    '안녕하세요. ' +
+    getVisitGreeting(user) +
+    '저는 차의과학대학교 신입생 담임교수 박대근 교수의 AI 면담 어시스턴트예요. ' +
+    '전공 선택이나 진로에 대해 궁금한 점을 편하게 물어봐 주세요.'
+  )
+}
+
+function getGreetingTts(user) {
+  return (
+    '안녕하세요. ' +
+    getVisitGreeting(user) +
+    '저는 차 의과학 대학교 신입생 담임 교수 박대근 교수의 에이아이 면담 어시스턴트예요. ' +
+    '전공 선택이나 진로에 대해 궁금한 점을 편하게 물어봐 주세요.'
+  )
+}
+
 async function callProxy(endpoint, payload) {
   const res = await fetch('/api/heygen-proxy', {
     method: 'POST',
@@ -99,14 +117,19 @@ export default function App() {
   const [isListening, setIsListening]   = useState(false)
   const [autoListen, setAutoListen]     = useState(false)
   const [user, setUser]                 = useState(getUser())     // 로그인된 사용자 (없으면 null = 익명)
+  const [conversationMode, setConversationMode] = useState('ftf')  // ftf | sts | ttt
+  const [cameraStream, setCameraStream] = useState(null)
   // 첫 접속 시 자동으로 로그인 모달 — 저장된 토큰(=user)이 있으면 안 띄움
   const [authOpen, setAuthOpen]         = useState(() => !getUser())
 
   const roomRef           = useRef(null)
   const sessionRef        = useRef(null)
   const videoRef          = useRef(null)
+  const userVideoRef      = useRef(null)
+  const cameraStreamRef   = useRef(null)
   const historyRef        = useRef([])
   const sessionIdRef      = useRef(null)   // 학교 DB용 세션 ID (아바타 시작 시 새로)
+  const conversationModeRef = useRef('ftf')
 
   // 토큰 검증 — 성공하면 모달 닫음 / 실패하면 모달 유지 (이미 열려있음)
   useEffect(() => {
@@ -141,6 +164,11 @@ export default function App() {
   useEffect(() => { autoListenRef.current   = autoListen }, [autoListen])
   useEffect(() => { isListeningRef.current  = isListening }, [isListening])
   useEffect(() => { isSpeakingRef.current   = (status === 'speaking') }, [status])
+  useEffect(() => { conversationModeRef.current = conversationMode }, [conversationMode])
+
+  useEffect(() => {
+    if (userVideoRef.current) userVideoRef.current.srcObject = cameraStream || null
+  }, [cameraStream])
 
   const clearListeningRestart = useCallback(() => {
     clearTimeout(restartTimerRef.current)
@@ -154,6 +182,36 @@ export default function App() {
       startListeningRef.current?.()
     }, delay)
   }, [clearListeningRestart])
+
+  const stopUserCamera = useCallback(() => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach(track => track.stop())
+      cameraStreamRef.current = null
+    }
+    setCameraStream(null)
+  }, [])
+
+  const startUserCamera = useCallback(async () => {
+    if (cameraStreamRef.current) return true
+    if (!navigator.mediaDevices?.getUserMedia) {
+      alert('이 브라우저는 카메라 연결을 지원하지 않아요.')
+      return false
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' },
+        audio: false
+      })
+      cameraStreamRef.current = stream
+      setCameraStream(stream)
+      return true
+    } catch {
+      alert('카메라 권한이 필요해요. 브라우저 주소창 왼쪽의 자물쇠 아이콘에서 카메라를 허용해주세요.')
+      return false
+    }
+  }, [])
+
+  useEffect(() => () => stopUserCamera(), [stopUserCamera])
 
   // ─── HeyGen interrupt ────────────────────────────
   const interruptAvatar = useCallback(async () => {
@@ -415,6 +473,7 @@ export default function App() {
 
   // ─── 마이크 토글 (사용자 액션) ─────────────────────
   const toggleMic = useCallback(() => {
+    if (conversationModeRef.current === 'ttt') return
     if (!sessionRef.current) {
       alert('먼저 아바타를 시작해주세요.')
       return
@@ -472,6 +531,8 @@ export default function App() {
     }
     accumulatedFinalRef.current = ''
     setIsListening(false)
+    stopUserCamera()
+    isSpeakingRef.current = false
 
     // HeyGen 세션 종료 (best-effort)
     if (sessionRef.current) {
@@ -493,13 +554,45 @@ export default function App() {
     setVideoReady(false)
     setStatus('idle')
     setMessages([])           // 채팅 초기화 — 깔끔하게 다시 시작
-  }, [clearListeningRestart])
+  }, [clearListeningRestart, stopUserCamera])
+
+  const startTextMode = useCallback(() => {
+    clearListeningRestart()
+    recognitionStartingRef.current = false
+    lastSubmittedSpeechRef.current = { key: '', at: 0 }
+    autoListenRef.current = false
+    setAutoListen(false)
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop() } catch {}
+      try { recognitionRef.current.abort?.() } catch {}
+      recognitionRef.current = null
+    }
+    accumulatedFinalRef.current = ''
+    setIsListening(false)
+    stopUserCamera()
+    isSpeakingRef.current = false
+
+    sessionRef.current = null
+    sessionIdRef.current = newSessionId()
+    historyRef.current = []
+    setVideoReady(false)
+    setStatus('connected')
+
+    const greetingText = getGreetingText(user)
+    setMessages([{ role: 'assistant', text: greetingText }])
+    saveChat(sessionIdRef.current, 'assistant', greetingText)
+  }, [clearListeningRestart, stopUserCamera, user])
 
   // ─── 아바타 시작 ───────────────────────────────────
   const startAvatar = useCallback(async () => {
     setStatus('connecting')
     sessionIdRef.current = newSessionId()  // 새 세션 ID
     lastSubmittedSpeechRef.current = { key: '', at: 0 }
+    if (conversationModeRef.current === 'ftf') {
+      await startUserCamera()
+    } else {
+      stopUserCamera()
+    }
     try {
       const tokenRes = await fetch('/api/heygen-token', { method: 'POST' }).then(r => r.json())
       if (!tokenRes.token) throw new Error('HeyGen 토큰 발급 실패: ' + JSON.stringify(tokenRes))
@@ -539,17 +632,8 @@ export default function App() {
       setStatus('connected')
 
       // 인사말 — 채팅 표시 + 아바타 발화
-      const visitGreeting = getVisitGreeting(user)
-      const greetingText =
-        '안녕하세요. ' +
-        visitGreeting +
-        '저는 차의과학대학교 신입생 담임교수 박대근 교수의 AI 면담 어시스턴트예요. ' +
-        '전공 선택이나 진로에 대해 궁금한 점을 편하게 물어봐 주세요.'
-      const greetingTts =
-        '안녕하세요. ' +
-        visitGreeting +
-        '저는 차 의과학 대학교 신입생 담임 교수 박대근 교수의 에이아이 면담 어시스턴트예요. ' +
-        '전공 선택이나 진로에 대해 궁금한 점을 편하게 물어봐 주세요.'
+      const greetingText = getGreetingText(user)
+      const greetingTts = getGreetingTts(user)
 
       setMessages([{ role: 'assistant', text: greetingText }])
       saveChat(sessionIdRef.current, 'assistant', greetingText)  // 인사말도 저장
@@ -576,17 +660,52 @@ export default function App() {
       }
     } catch (e) {
       console.error(e)
+      stopUserCamera()
+      if (roomRef.current) {
+        try { await roomRef.current.disconnect() } catch {}
+        roomRef.current = null
+      }
+      sessionRef.current = null
+      setVideoReady(false)
       setStatus('idle')
     }
-  }, [initRecognition, scheduleStartListening, user])
+  }, [initRecognition, scheduleStartListening, startUserCamera, stopUserCamera, user])
+
+  const startConversation = useCallback(() => {
+    if (conversationModeRef.current === 'ttt') {
+      startTextMode()
+      return
+    }
+    startAvatar()
+  }, [startAvatar, startTextMode])
+
+  const changeConversationMode = useCallback(async (nextMode) => {
+    if (nextMode === conversationModeRef.current) return
+    const hasActiveConversation = status !== 'idle' || messages.length > 0
+    if (hasActiveConversation) {
+      const ok = window.confirm('모드를 바꾸면 현재 대화가 초기화돼요. 바꿀까요?')
+      if (!ok) return
+      await stopAvatar()
+    }
+
+    conversationModeRef.current = nextMode
+    setConversationMode(nextMode)
+    if (nextMode !== 'ftf') stopUserCamera()
+  }, [messages.length, status, stopAvatar, stopUserCamera])
+
+  const isChatConnected = status !== 'idle' && status !== 'connecting'
 
   return (
     <div className={styles.app}>
       <AvatarPanel
         status={status}
+        mode={conversationMode}
+        onModeChange={changeConversationMode}
         videoRef={videoRef}
+        userVideoRef={userVideoRef}
         videoReady={videoReady}
-        onStart={startAvatar}
+        cameraActive={Boolean(cameraStream)}
+        onStart={startConversation}
         onStop={stopAvatar}
         onInterrupt={interruptAvatar}
         isListening={isListening}
@@ -595,10 +714,12 @@ export default function App() {
         messages={messages}
         isProcessing={isProcessing}
         onSend={sendMessage}
-        connected={status !== 'idle'}
+        connected={isChatConnected}
         isListening={isListening}
         onToggleMic={toggleMic}
-        micEnabled={status !== 'idle' && status !== 'connecting'}
+        micEnabled={conversationMode !== 'ttt' && isChatConnected}
+        micAvailable={conversationMode !== 'ttt'}
+        mode={conversationMode}
         user={user}
         onLoginClick={() => setAuthOpen(true)}
         onLogout={handleLogout}

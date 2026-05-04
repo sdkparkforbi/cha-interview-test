@@ -56,6 +56,17 @@
   background: linear-gradient(160deg, #0e1120 0%, #07080d 100%);
 }
 
+.modePlaceholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: linear-gradient(160deg, #0e1120 0%, #07080d 100%);
+}
+
 .avatarIcon {
   width: 96px;
   height: 96px;
@@ -66,6 +77,22 @@
   align-items: center;
   justify-content: center;
   font-size: 44px;
+  margin-bottom: 8px;
+}
+
+.modeIcon {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 1px solid rgba(201,162,126,0.28);
+  background: rgba(201,162,126,0.1);
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0;
   margin-bottom: 8px;
 }
 
@@ -130,6 +157,99 @@
   box-shadow: 0 0 24px rgba(59,130,246,0.4), inset 0 0 24px rgba(59,130,246,0.05);
   pointer-events: none;
   animation: pulseGlow 1.5s ease-in-out infinite;
+}
+
+.cameraPreview {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 78px;
+  aspect-ratio: 3/4;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(7,8,13,0.82);
+  color: rgba(255,255,255,0.52);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.32);
+  z-index: 4;
+}
+
+.cameraOn {
+  border-color: rgba(74,222,128,0.7);
+  box-shadow: 0 0 0 1px rgba(74,222,128,0.16), 0 10px 28px rgba(0,0,0,0.32);
+}
+
+.cameraVideo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.modeSwitch {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: min(360px, 100%);
+  gap: 6px;
+  padding: 5px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.035);
+  position: relative;
+  z-index: 2;
+}
+
+.modeBtn {
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.modeBtn:hover:not(:disabled) {
+  background: rgba(255,255,255,0.06);
+  color: var(--text);
+}
+
+.modeBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.modeBtnActive {
+  background: rgba(201,162,126,0.15);
+  border-color: rgba(201,162,126,0.38);
+  color: #f5dbc3;
+}
+
+.modeLabel {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.modeSub {
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.2;
 }
 
 @keyframes pulseGlow {
@@ -283,10 +403,10 @@
 @media (max-width: 768px) {
   .panel {
     width: 100%;
-    height: 40%;
-    min-height: 280px;
+    height: 42%;
+    min-height: 300px;
     padding: 12px 16px;
-    gap: 8px;
+    gap: 6px;
     border-bottom: 1px solid var(--border);
   }
 
@@ -296,7 +416,7 @@
   }
 
   .videoWrap {
-    max-width: 180px;
+    max-width: 138px;
     aspect-ratio: 3/4;
     border-radius: 18px;
   }
@@ -306,6 +426,21 @@
     height: 64px;
     font-size: 30px;
     margin-bottom: 4px;
+  }
+
+  .modeIcon {
+    width: 64px;
+    height: 64px;
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+
+  .cameraPreview {
+    right: 8px;
+    top: 8px;
+    width: 50px;
+    border-radius: 9px;
+    font-size: 9px;
   }
 
   .placeholderText {
@@ -334,8 +469,28 @@
   }
 
   .startBtn {
-    padding: 10px 20px;
-    font-size: 13px;
+    padding: 9px 18px;
+    font-size: 12px;
+  }
+
+  .modeSwitch {
+    width: min(260px, 100%);
+    gap: 4px;
+    padding: 4px;
+    border-radius: 12px;
+  }
+
+  .modeBtn {
+    min-height: 34px;
+    border-radius: 9px;
+  }
+
+  .modeLabel {
+    font-size: 11px;
+  }
+
+  .modeSub {
+    font-size: 9px;
   }
 
   .statusLabel {
@@ -346,10 +501,10 @@
 /* 매우 작은 화면 (≤380px) */
 @media (max-width: 380px) {
   .panel {
-    height: 36%;
-    min-height: 240px;
+    height: 42%;
+    min-height: 292px;
   }
   .videoWrap {
-    max-width: 150px;
+    max-width: 118px;
   }
 }
