@@ -30,7 +30,7 @@ export default function AvatarPanel({ status, videoRef, videoReady, onStart, onS
               <span>👨‍🏫</span>
             </div>
             <p className={styles.placeholderText}>박대근 교수</p>
-            <p className={styles.placeholderSub}>차의과학대학교 경영학전공</p>
+            <p className={styles.placeholderSub}>차의과학대학교 신입생 담임교수</p>
           </div>
         )}
 
@@ -39,7 +39,7 @@ export default function AvatarPanel({ status, videoRef, videoReady, onStart, onS
           <div className={styles.nameplate}>
             <div className={styles.nameplateInner}>
               <span className={styles.nameplateName}>박대근 교수</span>
-              <span className={styles.nameplateSub}>차의과학대학교 경영학전공</span>
+              <span className={styles.nameplateSub}>차의과학대학교 신입생 담임교수</span>
             </div>
           </div>
         )}

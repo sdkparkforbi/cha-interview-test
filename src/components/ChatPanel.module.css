@@ -45,6 +45,43 @@
   border: 1px solid var(--border);
 }
 
+.userArea {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.userGreeting {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logoutBtn {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid #2a2a32;
+  color: #888;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.loginBtn {
+  background: #2a2a32;
+  border: none;
+  color: #e6e6e6;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
 /* 메시지 목록 */
 .messages {
   flex: 1;
@@ -263,6 +300,30 @@
     padding: 2px 8px;
   }
 
+  .userArea {
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .userGreeting {
+    max-width: 46vw;
+    overflow: visible;
+    text-align: right;
+    text-overflow: clip;
+    white-space: normal;
+    line-height: 1.3;
+  }
+
+  .logoutBtn {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .loginBtn {
+    padding: 5px 12px;
+    font-size: 12px;
+  }
+
   .messages {
     padding: 14px 12px;
     gap: 12px;
@@ -303,5 +364,11 @@
   .hint {
     font-size: 10px;
     padding: 4px 0 calc(8px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 380px) {
+  .userGreeting {
+    max-width: 40vw;
   }
 }

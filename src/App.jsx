@@ -42,6 +42,46 @@ function mergeTranscript(previous, next) {
   return normalizeTranscript(`${prev} ${incoming}`)
 }
 
+function getUserDisplayName(user) {
+  return user?.name || user?.nickname || '사용자'
+}
+
+function getVisitCount(user) {
+  const rawCount = user?.visit_count ?? user?.visitCount ?? user?.login_count ?? user?.loginCount ?? user?.visits
+  const count = Number(rawCount)
+  return Number.isFinite(count) && count > 0 ? Math.floor(count) : 1
+}
+
+function getKoreanVisitOrdinal(count) {
+  const ones = ['', '첫', '두', '세', '네', '다섯', '여섯', '일곱', '여덟', '아홉']
+  const compoundOnes = ['', '한', '두', '세', '네', '다섯', '여섯', '일곱', '여덟', '아홉']
+  const exactTens = {
+    10: '열',
+    20: '스무',
+    30: '서른',
+    40: '마흔',
+    50: '쉰',
+    60: '예순',
+    70: '일흔',
+    80: '여든',
+    90: '아흔',
+  }
+  const compoundTens = { ...exactTens, 20: '스물' }
+
+  if (count > 0 && count < 10) return `${ones[count]}번째`
+  if (count >= 10 && count < 100) {
+    const ten = Math.floor(count / 10) * 10
+    const one = count % 10
+    return one === 0 ? `${exactTens[ten]}번째` : `${compoundTens[ten]}${compoundOnes[one]}번째`
+  }
+  return `${count}번째`
+}
+
+function getVisitGreeting(user) {
+  if (!user) return ''
+  return `${getUserDisplayName(user)}님 ${getKoreanVisitOrdinal(getVisitCount(user))} 방문을 환영합니다. `
+}
+
 async function callProxy(endpoint, payload) {
   const res = await fetch('/api/heygen-proxy', {
     method: 'POST',
@@ -499,11 +539,16 @@ export default function App() {
       setStatus('connected')
 
       // 인사말 — 채팅 표시 + 아바타 발화
+      const visitGreeting = getVisitGreeting(user)
       const greetingText =
-        '안녕하세요. 차의과학대학교 경영학전공 박대근 교수의 AI 면담 어시스턴트예요. ' +
+        '안녕하세요. ' +
+        visitGreeting +
+        '저는 차의과학대학교 신입생 담임교수 박대근 교수의 AI 면담 어시스턴트예요. ' +
         '전공 선택이나 진로에 대해 궁금한 점을 편하게 물어봐 주세요.'
       const greetingTts =
-        '안녕하세요. 차 의과학 대학교 경영학 전공 박대근 교수의 에이아이 면담 어시스턴트예요. ' +
+        '안녕하세요. ' +
+        visitGreeting +
+        '저는 차 의과학 대학교 신입생 담임 교수 박대근 교수의 에이아이 면담 어시스턴트예요. ' +
         '전공 선택이나 진로에 대해 궁금한 점을 편하게 물어봐 주세요.'
 
       setMessages([{ role: 'assistant', text: greetingText }])
@@ -533,7 +578,7 @@ export default function App() {
       console.error(e)
       setStatus('idle')
     }
-  }, [initRecognition, scheduleStartListening])
+  }, [initRecognition, scheduleStartListening, user])
 
   return (
     <div className={styles.app}>

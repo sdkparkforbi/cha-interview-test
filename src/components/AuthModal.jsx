@@ -74,7 +74,7 @@ export default function AuthModal({ open, onClose, onSuccess }) {
         <div className={styles.logo}>👨‍🏫</div>
         <h3 className={styles.title}>박대근 교수 면담봇</h3>
         <p className={styles.subtitle}>
-          차의과학대학교 경영학전공<br/>전공·진로 상담을 시작해 보세요.
+          차의과학대학교 신입생 담임교수<br/>전공·진로 상담을 시작해 보세요.
         </p>
 
         {/* 동의 섹션 — 항상 노출 */}

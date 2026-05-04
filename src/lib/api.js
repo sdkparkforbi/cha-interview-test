@@ -1,5 +1,5 @@
 // 학교 서버 PHP API 클라이언트 (cha_interview_db)
-const API_BASE = 'https://aiforalab.com/interview-api/api.php'
+const API_BASE = '/api/school-api'
 
 const TOKEN_KEY = 'cha_interview_token'
 const USER_KEY  = 'cha_interview_user'
